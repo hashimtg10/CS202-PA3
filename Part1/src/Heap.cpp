@@ -163,3 +163,14 @@ void MinHeap::minHeapify(int i)
         this->minHeapify(this->right(i));
     }
 }
+
+void MinHeap::printHeap()
+{
+    std::cout << std::endl;
+    for (int i = 0; i < this->size(); i++)
+    {
+        std::cout << this->harr[i] << ", ";
+    }
+    std::cout << std::endl;
+    
+}
