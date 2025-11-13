@@ -105,17 +105,63 @@ void HashTable<T>::removeLinearProbing(int key)
 template <typename T>
 void HashTable<T>::insertQuadraticProbing(int key, T value)
 {
+    int idx_l = this->hashFunction1(key);
+    int i = 0;
+    int idx = (idx_l + i*i) % this->table_size;
+    i++;
+    while (!this->probing_table[idx].isEmpty)
+    {
+        idx = (idx_l + i*i) %this->table_size;
+        i++;
+    }
+    this->probing_table[idx] = KeyValuePair(key, value, false);
+    this->num_elements++;
+    this->calculateLoadFactor();
+    if (this->loadFactor > this->loadFactorThreshold)
+    {
+        this->resizeAndRehash();
+    }
 }
 
 template <typename T>
 T HashTable<T>::searchQuadraticProbing(int key)
 {
-    return T();
+    int i = 0;
+    int idx_l = this->hashFunction1(key);
+    int idx = (idx_l + i*i) % this->table_size;
+    i++;
+    while (!this->probing_table[idx].isEmpty)
+    {
+        if (this->probing_table[idx].key == key)
+        {
+            return this->probing_table[idx].value;
+        }
+        idx = (idx_l + i*i) % this->table_size;
+        i++;
+    }
+    return this->probing_table[idx].value;
 }
 
 template <typename T>
 void HashTable<T>::removeQuadraticProbing(int key)
 {
+    int idx_l = this->hashFunction1(key);
+    int i = 0;
+    int idx = (idx_l + i*i) %this->table_size;
+    i++;
+    for(int i = 0; i < this->table_size; i++)
+    {
+        if (this->probing_table[idx].key == key)
+        {
+            KeyValuePair temp;
+            this->probing_table[idx]  = temp;
+            this->num_elements--;
+            this->calculateLoadFactor();
+            return;
+        }
+        idx = (idx_l + i*i) % this->table_size;
+        i++;
+    }
 }
 
 // =======================
@@ -124,6 +170,7 @@ void HashTable<T>::removeQuadraticProbing(int key)
 template <typename T>
 void HashTable<T>::insertSeparateChaining(int key, T value)
 {
+    
 }
 
 template <typename T>
@@ -140,7 +187,7 @@ void HashTable<T>::removeSeparateChaining(int key)
 template <typename T>
 void HashTable<T>::resizeAndRehash()
 {  
-    if (this->collision_strategy == LINEAR_PROBING)
+    if (this->collision_strategy == LINEAR_PROBING || this->collision_strategy == QUADRATIC_PROBING)
     {
         KeyValuePair* old_table = this->probing_table;
         int old_size = this->table_size;
@@ -157,10 +204,6 @@ void HashTable<T>::resizeAndRehash()
         delete[] old_table;
 
         this->calculateLoadFactor();
-    }
-    else if(this->collision_strategy == QUADRATIC_PROBING)
-    {
-
     }
     else if(this->collision_strategy == SEPARATE_CHAINING)
     {
