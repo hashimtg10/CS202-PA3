@@ -170,18 +170,66 @@ void HashTable<T>::removeQuadraticProbing(int key)
 template <typename T>
 void HashTable<T>::insertSeparateChaining(int key, T value)
 {
-    
+    int idx = this->hashFunction1(key);
+    bool flag = false;
+    for(auto it : this->chaining_table[idx])
+    {
+        if(it.key == key)
+        {
+            it.value = value;
+            flag = true;
+        }
+    }
+    if(flag == false)
+    {
+        this->chaining_table[idx].push_back(KeyValuePair(key, value, false));
+    }
+    this->num_elements++;
+    this->calculateLoadFactor();
+    if(this->loadFactor > this->loadFactorThreshold)
+    {
+        this->resizeAndRehash();
+    }
 }
 
 template <typename T>
 T HashTable<T>::searchSeparateChaining(int key)
 {
+    int idx = this->hashFunction1(key);
+    for(auto it : this->chaining_table[idx])
+    {
+        if(it.key == key)
+        {
+            return it.value;
+        }
+    }
     return T();
 }
-
 template <typename T>
 void HashTable<T>::removeSeparateChaining(int key)
 {
+    int idx = this->hashFunction1(key);
+    for(size_t i = 0 ; i < this->chaining_table[idx].size() ; i++)
+    {
+        if(this->chaining_table[idx][i].key == key)
+        {
+            if(i == 0)
+            {
+                this->chaining_table[idx].pop_back();
+                this->num_elements--;
+                this->calculateLoadFactor();
+                return;
+            }
+            for(size_t j = i ; j < this->chaining_table[idx].size() - 1; j++)
+            {
+                this->chaining_table[idx][j] = this->chaining_table[idx][j+1];
+                this->chaining_table[idx].pop_back();
+                this->num_elements--;
+                this->calculateLoadFactor();
+                return;
+            }
+        }
+    }
 }
 
 template <typename T>
@@ -207,7 +255,22 @@ void HashTable<T>::resizeAndRehash()
     }
     else if(this->collision_strategy == SEPARATE_CHAINING)
     {
-
+        vector<vector<KeyValuePair>> old_table = this->chaining_table;
+        int old_size = this->table_size;
+        this->table_size*=2;
+        this->num_elements = 0;
+        this->chaining_table.clear();
+        this->chaining_table.resize(this->table_size);
+        for (int i = 0; i < old_size; i++)
+        {
+            for(auto it : old_table[i])
+            {
+                if(!it.isEmpty)
+                {
+                    this->insert(it.key, it.value);
+                }
+            }
+        }
     }
 }
 
