@@ -116,14 +116,14 @@ std::vector<int> SocialGraph::getAdjacent(int from) const
 
 std::optional<std::vector<int>> SocialGraph::findShortestPath(int start, int end) const
 {
-    if(this->adjList.find(start) == this->adjList.end() || this->adjList.find(end) == this->adjList.end())
+    if (this->adjList.find(start) == this->adjList.end() || this->adjList.find(end) == this->adjList.end())
     {
         return {};
     }
 
     std::vector<std::pair<int, std::vector<int>>> Dist; // this vector stores the shortest distance to a node from the start node as well as the shortest path to that node
     Dist.resize(this->adjList.size() + 1);
-    for (int i = 0; i < Dist.size(); i++)
+    for (size_t i = 0; i < Dist.size(); i++)
     {
         Dist[i].first = INT_MAX;
     }
@@ -146,22 +146,21 @@ std::optional<std::vector<int>> SocialGraph::findShortestPath(int start, int end
             std::vector<int> temp = path;
             temp.push_back(it);
 
-            if (temp.size() - 1 < Dist[it].first)
+            if (int(temp.size()) - 1 < Dist[it].first)
             {
                 Dist[it].first = temp.size() - 1;
                 Dist[it].second = temp;
                 q.push({it, temp});
             }
-
         }
-    } 
+    }
     // std::cout << std::endl;
     // for(auto it : Dist[end].second)
     // {
     //     std::cout  << it << ", ";
     // }
     // std::cout << std::endl;
-    if(Dist[end].second.empty())
+    if (Dist[end].second.empty())
     {
         return std::nullopt;
     }
@@ -172,28 +171,87 @@ std::optional<std::vector<int>> SocialGraph::findShortestPath(int start, int end
     }
 }
 
-// --- Helper Functions for findShortestPath ---
-//  std::stack<int> topoSort(std::unordered_map<int, std::vector<int>> graph)
-//  {
-
-//  }
-// std::stack<int> topoHelper(std::unordered_map<int, std::vector<int>> graph, int src, int vis[], std::stack<int>& st)
-// {
-
-// }
-
 // --- Advanced Analysis Functions ---
 
 std::vector<std::pair<int, int>> SocialGraph::findEchoChambers() const
 {
-    // TODO
-    return {};
+    std::vector<std::pair<int, int>> pairs;
+    for (size_t i = 0; i < this->adjList.size(); i++)
+    {
+        for (size_t j = i + 1; j <= this->adjList.size(); j++)
+        {
+            if (this->hasEdge(i, j) && this->hasEdge(j, i))
+            {
+                pairs.push_back({i, j});
+            }
+        }
+    }
+    return pairs;
 }
 
 std::unordered_map<int, double> SocialGraph::calculatePageRank(double damping, int iterations) const
 {
-    // TODO
-    return {};
+    // Creating a map of followers for all the entities
+    std::unordered_map<int, std::vector<int>> followers;
+    for (size_t i = 1; i <= this->adjList.size(); i++)
+    {
+        for (auto j : this->adjList.at(i))
+        {
+            followers[j].push_back(i);
+        }
+    }
+
+    // Initializing a map for the ranks for all the entities
+    std::unordered_map<int, double> ranks;
+
+    for (size_t i = 1; i <= this->adjList.size(); i++)
+    {
+        ranks[i] = 1.0 / double(this->adjList.size());
+    }
+    // Updating the ranks
+
+    for (int i = 0; i < iterations; i++)
+    {
+        std::unordered_map<int, double> new_ranks;
+
+        double sum_of_ranks_with_no_outbound = 0.0;
+        for (size_t j = 1; j <= this->adjList.size(); j++)
+        {
+            if (this->adjList.at(j).size() == 0)
+            {
+                sum_of_ranks_with_no_outbound += ranks[j];
+            }
+        }
+
+        double S_N = sum_of_ranks_with_no_outbound / double(this->adjList.size());
+
+        for (size_t j = 1; j <= this->adjList.size(); j++)
+        {
+            double constant = (1.0 - damping) / double(this->adjList.size());
+            double total_contribution = 0.0;
+
+            for (auto it : followers[j])
+            {
+                double out_bound = double(this->adjList.at(it).size());
+                double cont = 0.0;
+                if (out_bound != 0)
+                {
+                    cont = ranks[it] / out_bound;
+                }
+                total_contribution += cont;
+            }
+            total_contribution += S_N;
+
+            total_contribution *= damping;
+
+            total_contribution += constant;
+
+            new_ranks[j] = total_contribution;
+        }
+
+        ranks = new_ranks;
+    }
+    return ranks;
 }
 
 std::vector<std::vector<int>> SocialGraph::findCommunities() const
